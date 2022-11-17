@@ -12,23 +12,22 @@ const User = require("../models/User");
 router.post("/user/signup", async (req, res) => {
   console.log("Route /user/signup");
   try {
-    if (req.body.username) {
+    const { username, email, password, newsletter } = req.body;
+    if (username) {
       //   console.log(req.body.username);
-      const userFound = await User.findOne({ email: req.body.email });
+      const userFound = await User.findOne({ email: email });
       //   console.log(userFound);
       if (!userFound) {
         const generatedSalt = uid2(16);
-        const generatedHash = SHA256(
-          req.body.password + generatedSalt
-        ).toString(base64);
+        const generatedHash = SHA256(password + generatedSalt).toString(base64);
         const generatedToken = uid2(16);
 
         const newUser = new User({
-          email: req.body.email,
+          email: email,
           account: {
-            username: req.body.username,
+            username: username,
           },
-          newsletter: req.body.newsletter,
+          newsletter: newsletter,
           token: generatedToken,
           hash: generatedHash,
           salt: generatedSalt,
@@ -54,15 +53,14 @@ router.post("/user/signup", async (req, res) => {
 
 router.post("/user/login", async (req, res) => {
   console.log("Route /user/login");
-  //
-  // const {email, password} = req.body
   try {
-    if (req.body.email && req.body.password) {
-      const userFound = await User.findOne({ email: req.body.email });
+    const { email, password } = req.body;
+    if (email && password) {
+      const userFound = await User.findOne({ email: email });
       if (userFound) {
-        const generatedHash = SHA256(
-          req.body.password + userFound.salt
-        ).toString(base64);
+        const generatedHash = SHA256(password + userFound.salt).toString(
+          base64
+        );
 
         if (generatedHash === userFound.hash) {
           return res.status(200).json({
