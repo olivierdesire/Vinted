@@ -8,7 +8,7 @@ const cloudinary = require("cloudinary").v2;
 const Offer = require("../models/Offer");
 
 // Import du middleWare isAuthenticated
-const isAutenticated = require("../middlewares/isAuthenticated");
+const isAuthenticated = require("../middlewares/isAuthenticated");
 
 const convertToBase64 = require("../utils/converterB64");
 
@@ -18,70 +18,50 @@ router.post(
   fileUpload(),
   async (req, res) => {
     try {
-      if (req.files) {
-        console.log("route /offer/publish");
+      console.log("route /offer/publish");
+      const { title, description, condition, price, city, brand, size, color } =
+        req.body;
+
+      if (req.files.picture && title && price) {
         // console.log(req.user);
-
-        // const { title, description, price } = req.body;
-        // console.log(result);
-
-        const {
-          title,
-          description,
-          condition,
-          price,
-          city,
-          brand,
-          size,
-          color,
-        } = req.body;
 
         const newOffer = new Offer({
           product_name: title,
           product_description: description,
           product_price: price,
           product_details: [
-            {
-              MARQUE: brand,
-            },
-            {
-              TAILLE: size,
-            },
-            {
-              ETAT: condition,
-            },
-            {
-              COULEUR: color,
-            },
-            {
-              EMPLACEMENT: city,
-            },
+            { MARQUE: brand },
+            { TAILLE: size },
+            { ETAT: condition },
+            { COULEUR: color },
+            { EMPLACEMENT: city },
           ],
           owner: req.user,
         });
-        // console.log(req.files);
-        console.log(newOffer);
 
-        const pictureUpload = await cloudinary.uploader.upload(
-          convertToBase64(req.files.picture),
-          { folder: `/vinted/offers/${newOffer._id}` }
-        );
+        // console.log(newOffer);
+        if (
+          Array.isArray(req.files.picture) ||
+          req.files.picture.mimetype.slice(0, 5) !== "image"
+        ) {
+          return res.status(400).json("You must send a single image file!");
+        } else {
+          // Envoi de l'image à Cloudinary
+          const pictureUpload = await cloudinary.uploader.upload(
+            convertToBase64(req.files.picture),
+            { folder: `/vinted/offers/${newOffer._id}` }
+          );
 
-        newOffer.product_image = pictureUpload;
+          newOffer.product_image = pictureUpload;
 
-        await newOffer.save();
+          await newOffer.save();
 
-        return res.status(201).json({
-          _id: newOffer._id,
-          product_name: newOffer.product_name,
-          product_description: newOffer.product_description,
-          product_price: newOffer.product_price,
-          product_details: newOffer.product_details,
-          owner: { account: req.user.account.username },
-          product_image: { secure_url: newOffer.product_image.secure_url },
-        });
+          return res.status(201).json(newOffer);
+        }
       } else {
-        res.status(400).json({ message: "A picture is required" });
+        res
+          .status(400)
+          .json({ message: "Title, price and picture are required" });
       }
     } catch (error) {
       return res.status(400).json({ error: error.message });
@@ -93,13 +73,13 @@ router.get("/offers", async (req, res) => {
   try {
     console.log("Route /offer");
 
-    const filters = {};
+    let filters = {};
 
     // pages
     const limit = 20;
     let page = 1;
 
-    if (req.query.page && req.query.page !== "0") {
+    if (req.query.page && req.query.page > 0) {
       page = req.query.page;
     }
 
@@ -126,7 +106,7 @@ router.get("/offers", async (req, res) => {
     }
 
     // filtre sort
-    const sort = {};
+    let sort = {};
 
     if (req.query.sort === "price-desc") {
       sort.product_price = "desc";
@@ -146,10 +126,9 @@ router.get("/offers", async (req, res) => {
     //   "product_details product_image.secure_url _id product_name production_description product_price owner"
     // );
 
-    // console.log(listOffers);
-    // console.log(listOffers.length);
-
+    // comptage des documents de la recherche des offres sur le filtre
     const count = await Offer.find(filters).countDocuments();
+
     return res.status(200).json({ count: count, offers: offers });
   } catch (error) {
     return res.status(400).json({ message: error.message });
@@ -161,26 +140,23 @@ router.get("/offer/:id", async (req, res) => {
     console.log("Route /offer:id");
     // console.log(req.params.id);
 
-    // if (req.params.id) {
     const offerFound = await Offer.findById(req.params.id).populate({
       path: "owner",
       select: "account",
     });
-    // .select(
-    //   "product_details product_image.secure_url _id product_name production_description product_price owner"
-    // );
 
     if (offerFound) {
       res.status(200).json(offerFound);
     } else {
       res.status(400).json({ message: "Offer not found" });
     }
-    // } else {
-    //   res.status(400).json({ message: "Invalid param" });
-    // }
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
 });
+
+// router.put("/offer/update/:id", isAuthenticated, async (res,req) =>{
+
+// } )
 
 module.exports = router;
