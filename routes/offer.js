@@ -59,7 +59,7 @@ router.post(
           return res.status(201).json(newOffer);
         }
       } else {
-        res
+        return res
           .status(400)
           .json({ message: "Title, price and picture are required" });
       }
@@ -146,9 +146,9 @@ router.get("/offer/:id", async (req, res) => {
     });
 
     if (offerFound) {
-      res.status(200).json(offerFound);
+      return res.status(200).json(offerFound);
     } else {
-      res.status(400).json({ message: "Offer not found" });
+      return res.status(400).json({ message: "Offer not found" });
     }
   } catch (error) {
     return res.status(400).json({ message: error.message });
@@ -235,17 +235,15 @@ router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
         // suppression du contenu du dossier dans Cloudinary
 
         await cloudinary.api.delete_resources_by_prefix(
-          `api/vinted/offers/${req.params.id}`
+          `vinted/offers/${req.params.id}`
         );
+        // console.log(test);
+        // une fois le contenu vidé
 
-        // une soir le contenu vidé
-
-        await cloudinary.api.delete_folder(
-          `api/vinted/offers/${req.params.id}`
-        );
+        await cloudinary.api.delete_folder(`vinted/offers/${req.params.id}`);
 
         await offerToDelete.delete();
-        res.status(200).json("Offer deleted succesfully !");
+        return res.status(200).json("Offer deleted succesfully !");
       } else {
         console.log(
           `id Token ${req.user.id} not the same id offer's owner ${ownerId}`
