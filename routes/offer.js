@@ -155,8 +155,109 @@ router.get("/offer/:id", async (req, res) => {
   }
 });
 
-// router.put("/offer/update/:id", isAuthenticated, async (res,req) =>{
+router.put("/offer/update/:id", isAuthenticated, async (req, res) => {
+  try {
+    console.log("route /odder/update/:id");
 
-// } )
+    const offerToModify = await Offer.findById(req.params.id);
+    // console.log(offerToModify);
+
+    if (offerToModify) {
+      const { title, description, condition, price, city, brand, size, color } =
+        req.body;
+
+      // console.log("Offre existante");
+      const ownerId = offerToModify.owner.toString();
+      if (req.user.id === ownerId) {
+        if (title) {
+          offerToModify.product_name = title;
+        }
+
+        if (description) {
+          offerToModify.product_description = description;
+        }
+
+        if (price) {
+          offerToModify.price = price;
+        }
+
+        const details = offerToModify.product_details;
+        // console.log(details);
+
+        for (let i = 0; i < details.length; i++) {
+          if (condition && details[i].ETAT) {
+            details[i].ETAT = condition;
+          }
+          if (brand && details[i].MARQUE) {
+            details[i].ETAT = brand;
+          }
+          if (size && details[i].TAILLE) {
+            details[i].ETAT = size;
+          }
+          if (color && details[i].COLOR) {
+            details[i].ETAT = color;
+          }
+          if (city && details[i].EMPLACEMENT) {
+            details[i].ETAT = city;
+          }
+        }
+        offerToModify.markModified("product_details");
+
+        await offerToModify.save();
+
+        // console.log("id ok");
+        // res.status(200).json(offerToModify);
+        return res.status(200).json("Offer modified succesfully !");
+      } else {
+        console.log(
+          `id Token ${req.user.id} not the same id offer's owner ${ownerId}`
+        );
+        return res.status(400).json({ message: "Offer not exists" });
+      }
+    } else {
+      return res.status(400).json({ message: "Offer not exists" });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+});
+
+router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
+  try {
+    console.log("Route /offer/delete/:id");
+
+    const offerToDelete = await Offer.findById(req.params.id);
+    // console.log(offerToModify);
+
+    if (offerToDelete) {
+      const ownerId = offerToDelete.owner.toString();
+      if (req.user.id === ownerId) {
+        // suppression du contenu du dossier dans Cloudinary
+
+        await cloudinary.api.delete_resources_by_prefix(
+          `api/vinted/offers/${req.params.id}`
+        );
+
+        // une soir le contenu vidé
+
+        await cloudinary.api.delete_folder(
+          `api/vinted/offers/${req.params.id}`
+        );
+
+        await offerToDelete.delete();
+        res.status(200).json("Offer deleted succesfully !");
+      } else {
+        console.log(
+          `id Token ${req.user.id} not the same id offer's owner ${ownerId}`
+        );
+        return res.status(400).json({ message: "Offer not exists" });
+      }
+    } else {
+      return res.status(400).json({ message: "Offer not exists" });
+    }
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+});
 
 module.exports = router;
