@@ -189,16 +189,16 @@ router.put("/offer/update/:id", isAuthenticated, async (req, res) => {
             details[i].ETAT = condition;
           }
           if (brand && details[i].MARQUE) {
-            details[i].ETAT = brand;
+            details[i].MARQUE = brand;
           }
           if (size && details[i].TAILLE) {
-            details[i].ETAT = size;
+            details[i].TAILLE = size;
           }
           if (color && details[i].COLOR) {
-            details[i].ETAT = color;
+            details[i].COLOR = color;
           }
           if (city && details[i].EMPLACEMENT) {
-            details[i].ETAT = city;
+            details[i].EMPLACEMENT = city;
           }
         }
         offerToModify.markModified("product_details");
