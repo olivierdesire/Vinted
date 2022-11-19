@@ -5,11 +5,17 @@ const SHA256 = require("crypto-js/sha256");
 const base64 = require("crypto-js/enc-base64");
 const uid2 = require("uid2");
 
+const fileUpload = require("express-fileupload");
+const cloudinary = require("cloudinary").v2;
+
+// import des utils
+const convertToBase64 = require("../utils/converterB64");
+
 // Import modèles
 const User = require("../models/User");
 
 // Routes user
-router.post("/user/signup", async (req, res) => {
+router.post("/user/signup", fileUpload(), async (req, res) => {
   console.log("Route /user/signup");
   try {
     const { username, email, password, newsletter } = req.body;
@@ -33,6 +39,14 @@ router.post("/user/signup", async (req, res) => {
           salt: generatedSalt,
         });
 
+        if (req.files.avatar) {
+          const pictureUpload = await cloudinary.uploader.upload(
+            convertToBase64(req.files.avatar),
+            { folder: `/vinted/users/${newUser._id}` }
+          );
+          newUser.account.avatar = pictureUpload;
+        }
+
         await newUser.save();
 
         return res.status(201).json({
@@ -41,7 +55,9 @@ router.post("/user/signup", async (req, res) => {
           account: { username: newUser.account.username },
         });
       } else {
-        return res.status(409).json({ message: "Email already exists" });
+        return res
+          .status(409)
+          .json({ message: "Email already has an account" });
       }
     } else {
       return res.status(400).json({ error: { message: "Username missing" } });
